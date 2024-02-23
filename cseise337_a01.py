@@ -168,8 +168,7 @@ def decode(ct):
     return res
 
 def main():
-    res = load_fs("lsoutput.txt")
-    print(res)
+    pass
 
 
 
