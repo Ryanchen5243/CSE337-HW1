@@ -57,16 +57,21 @@ class FS_Item:
     def __init__(self,name):
         self.name = name
 class Folder(FS_Item):
+    indentLevel = 0
     def __init__(self,name,items):
         super().__init__(name)
         self.items = items
     def add_item(self,item):
         self.items.append(item)
     def __str__(self):
-        res = "Folder: "
+        res = f"Folder: {self.name}\n"
+        Folder.indentLevel += 1
         for i in self.items:
-            res += str(i)
-        res += "\n"
+            if type(i) == Folder:
+                res += str("---" * Folder.indentLevel) + " " + i.__str__() + "\n"
+            else:
+                res += str("---" * Folder.indentLevel) + " " + str(i) + "\n"
+        Folder.indentLevel -= 1
         return res
 
 class File(FS_Item):
@@ -74,44 +79,59 @@ class File(FS_Item):
         super().__init__(name)
         self.size = size
     def __str__(self):
-        return self.name
+        return f"{self.name} {self.size} bytes"
 
 def load_fs(ls_output):
     topLevelFolder = None
-    hmap = {} # folder path -> files
-
     # tree structure
     with open(ls_output,"r") as inFile:
         all_lines = inFile.readlines()
         # parse top level folder
         topLevelFolder = Folder(".",[])
+        currFolder = topLevelFolder
 
         for line in all_lines:
-            print(line)
-    # procedure BFS(root):
-    # create an empty queue
-    # enqueue root into the queue
-    #
-    # while the queue is not empty:
-    #     current_node = dequeue from the queue
-    #     process current_node's data
-    #
-    #     for each child in current_node's children:
-    #         enqueue child into the queue
+            line = line.split()
+            # folder start
+            if len(line) == 1 and line[0][0] == ".":
+                path = line[0].split("/")
+                # remove the colon from last
+                path[-1] = path[-1][0:len(path[-1])-1]
+                # print("The path is -------->",path)
+                # update currFolder to process subsequent
+                # files/folders in else clause
+                if len(topLevelFolder.items) == 0:
+                    # top level case
+                    pass
+                else:
+                    # find current folder using path
+                    # print("the path is ")
+                    # print(path)
+                    # reset pointer
+                    currFolder = topLevelFolder
+
+                    path_ind = 1 # iterate through path
+                    while path_ind < len(path):
+                        # print(path_ind)
+                        # update currFolder at current level
+                        for item in currFolder.items:
+                            # print("detecting ",item)
+                            if type(item) == Folder:
+                                if item.name == str(path[path_ind]):
+                                    # print("found folder",item.name)
+                                    currFolder = item
+                                    break
+                        path_ind += 1
+                    # print("assigned current folder to ",currFolder.name)
+            elif len(line) == 0 or len(line) == 2 and line[0] == "total":
+                continue
+            else:
+                if line[0][0] == "d": # folder detected
+                    currFolder.add_item(Folder(str(line[-1]),[]))
+                elif line[0][0] == "-": # file detected
+                    currFolder.add_item(File(str(line[-1]),int(line[4])))
 
     return topLevelFolder
-
-# The argument passed to ls_output is the name of a file which contains
-# the output of the system command ls -lR.
-#
-# The function should read this file and use it to construct an internal representation of the part of
-# the file system recorded in the file named by ls_output. For each directory, create a Folder
-# object with the same name. Add each directory and document contained in that directory as a
-# Folder or File element of its items list. For each File element make sure to set its name
-# and filesize when adding it to the items list of the Folder that contains it.
-# When done the function should return a reference to the top-level Folder item (the one
-# corresponding to the top-level directory in ls_output.
-
 
 # Problem 5 – Decoding
 def decode(ct):
@@ -148,10 +168,8 @@ def decode(ct):
     return res
 
 def main():
-    print(decode("sidnkw"))
-    print(decode("i uz zwgd jqf"))
-    print(decode("tmny zk d pmxj"))
-
+    res = load_fs("lsoutput.txt")
+    print(res)
 
 
 
